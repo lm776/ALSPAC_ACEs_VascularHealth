@@ -1093,7 +1093,8 @@ PWV_Model5_Classic_17_Whole <- with(
       Daily_MVPA_15 + Daily_Light_PA_15 + Diet_pattern_13_calib +
       non_milk_sugar_13 + Weekday_sleep_duration_15y +
       Weekend_sleep_duration_15y + Child_alc_15 + Child_smoke_15 +
-      Cortisol_15 + CRP_15
+      Cortisol_15 + CRP_15, 
+    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
   )
 )
 
