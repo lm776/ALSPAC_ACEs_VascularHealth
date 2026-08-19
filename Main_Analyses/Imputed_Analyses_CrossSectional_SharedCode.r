@@ -1,7 +1,7 @@
 # File header ----
 # ACEs and Vascular Health — Imputed Regression Analyses (Classic ACEs)
 # Study:   Adverse Childhood Experiences and Changes in Vascular Health from
-#          Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal
+#          Adolescence to Early Adulthood: Cross-Sectional and Longitudinal
 #          Evidence from the ALSPAC Study
 # Cohort:  Avon Longitudinal Study of Parents and Children (ALSPAC)
 #          Boyd A, et al. (2012) Cohort Profile: the 'children of the 90s'.
@@ -166,7 +166,10 @@ rm(Study1_Classic_Long, Study1_Classic_Long_V2, Study1_Classic_Long_Subset,
 # Model structure (all models):
 #   Whole group: Classic_ACEs (or * Child_sex for interaction models)
 #   Split by sex: Classic_ACEs only (no interaction term needed)
-#   Subset: PA_include_15 == TRUE & Diet_include_13 == TRUE throughout
+#   Subset: Models 3 and 5 (which include physical activity and diet as
+#           lifestyle covariates) restrict to PA_include_15 == TRUE &
+#           Diet_include_13 == TRUE via the `subset =` argument. Models 1,
+#           2, and 4 use the full available (unfiltered) sample.
 #
 # Models 1–5 are progressively adjusted:
 #   Model 1: Minimal adjustment (age, BP)
@@ -183,16 +186,14 @@ rm(Study1_Classic_Long, Study1_Classic_Long_V2, Study1_Classic_Long_Subset,
 PWV_Model1_Classic_17_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    PWV_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    PWV_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years
   )
 )
 
 PWV_Model1_Classic_24_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    PWV_24 ~ Classic_ACEs + BP_systolic_24 + Age_24_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    PWV_24 ~ Classic_ACEs + BP_systolic_24 + Age_24_clinic_years
   )
 )
 
@@ -200,9 +201,7 @@ PWV_Model1_Classic_17_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -210,9 +209,7 @@ PWV_Model1_Classic_17_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -220,9 +217,7 @@ PWV_Model1_Classic_24_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_24 ~ Classic_ACEs + BP_systolic_24 + Age_24_clinic_years,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -230,9 +225,7 @@ PWV_Model1_Classic_24_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_24 ~ Classic_ACEs + BP_systolic_24 + Age_24_clinic_years,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -241,16 +234,14 @@ PWV_Model1_Classic_24_M <- with(
 cIMT_Model1_Classic_17_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    cIMT_17 ~ Classic_ACEs + Age_17_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    cIMT_17 ~ Classic_ACEs + Age_17_clinic_years
   )
 )
 
 cIMT_Model1_Classic_24_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    cIMT_24 ~ Classic_ACEs + Age_24_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    cIMT_24 ~ Classic_ACEs + Age_24_clinic_years
   )
 )
 
@@ -258,9 +249,7 @@ cIMT_Model1_Classic_17_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_17 ~ Classic_ACEs + Age_17_clinic_years,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -268,9 +257,7 @@ cIMT_Model1_Classic_17_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_17 ~ Classic_ACEs + Age_17_clinic_years,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -278,9 +265,7 @@ cIMT_Model1_Classic_24_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_24 ~ Classic_ACEs + Age_24_clinic_years,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -288,9 +273,7 @@ cIMT_Model1_Classic_24_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_24 ~ Classic_ACEs + Age_24_clinic_years,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -299,8 +282,7 @@ cIMT_Model1_Classic_24_M <- with(
 Dist_Model1_Classic_17_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    Arterial_Dist_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    Arterial_Dist_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years
   )
 )
 
@@ -308,9 +290,7 @@ Dist_Model1_Classic_17_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     Arterial_Dist_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -318,9 +298,7 @@ Dist_Model1_Classic_17_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     Arterial_Dist_17 ~ Classic_ACEs + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE &
-                Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -448,8 +426,7 @@ PWV_Model2_Classic_17_Whole <- with(
     PWV_17 ~ Classic_ACEs * Child_sex + BP_systolic_17 + Age_17_clinic_years +
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
-      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17
   )
 )
 
@@ -459,8 +436,7 @@ PWV_Model2_Classic_24_Whole <- with(
     PWV_24 ~ Classic_ACEs * Child_sex + BP_systolic_24 + Age_24_clinic_years +
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
-      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24
   )
 )
 
@@ -471,8 +447,7 @@ PWV_Model2_Classic_17_F <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -483,8 +458,7 @@ PWV_Model2_Classic_17_M <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -495,8 +469,7 @@ PWV_Model2_Classic_24_F <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -507,8 +480,7 @@ PWV_Model2_Classic_24_M <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -520,8 +492,7 @@ cIMT_Model2_Classic_17_Whole <- with(
     cIMT_17 ~ Classic_ACEs * Child_sex + Age_17_clinic_years +
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
-      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17
   )
 )
 
@@ -531,8 +502,7 @@ cIMT_Model2_Classic_24_Whole <- with(
     cIMT_24 ~ Classic_ACEs * Child_sex + Age_24_clinic_years +
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
-      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24
   )
 )
 
@@ -543,8 +513,7 @@ cIMT_Model2_Classic_17_F <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -555,8 +524,7 @@ cIMT_Model2_Classic_17_M <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -567,8 +535,7 @@ cIMT_Model2_Classic_24_F <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -579,8 +546,7 @@ cIMT_Model2_Classic_24_M <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -592,8 +558,7 @@ Dist_Model2_Classic_17_Whole <- with(
     Arterial_Dist_17 ~ Classic_ACEs * Child_sex + BP_systolic_17 + Age_17_clinic_years +
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
-      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17
   )
 )
 
@@ -604,8 +569,7 @@ Dist_Model2_Classic_17_F <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (Child_sex == "Female" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -616,8 +580,7 @@ Dist_Model2_Classic_17_M <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-    subset = (Child_sex == "Male" &
-                PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -913,8 +876,7 @@ PWV_Model4_Classic_17_Whole <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
-      Cortisol_15 + CRP_15,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Cortisol_15 + CRP_15
   )
 )
 
@@ -925,8 +887,7 @@ PWV_Model4_Classic_24_Whole <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24 +
-      Cortisol_15 + CRP_15 + IL6_24,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Cortisol_15 + CRP_15 + IL6_24
   )
 )
 
@@ -938,7 +899,7 @@ PWV_Model4_Classic_17_F <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
       Cortisol_15 + CRP_15,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -950,7 +911,7 @@ PWV_Model4_Classic_17_M <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
       Cortisol_15 + CRP_15,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -962,7 +923,7 @@ PWV_Model4_Classic_24_F <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24 +
       Cortisol_15 + CRP_15 + IL6_24,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -974,7 +935,7 @@ PWV_Model4_Classic_24_M <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24 +
       Cortisol_15 + CRP_15 + IL6_24,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -987,8 +948,7 @@ cIMT_Model4_Classic_17_Whole <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
-      Cortisol_15 + CRP_15,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Cortisol_15 + CRP_15
   )
 )
 
@@ -999,8 +959,7 @@ cIMT_Model4_Classic_24_Whole <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24 +
-      Cortisol_15 + CRP_15 + IL6_24,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Cortisol_15 + CRP_15 + IL6_24
   )
 )
 
@@ -1012,7 +971,7 @@ cIMT_Model4_Classic_17_F <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
       Cortisol_15 + CRP_15,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1024,7 +983,7 @@ cIMT_Model4_Classic_17_M <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
       Cortisol_15 + CRP_15,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -1036,7 +995,7 @@ cIMT_Model4_Classic_24_F <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24 +
       Cortisol_15 + CRP_15 + IL6_24,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1048,7 +1007,7 @@ cIMT_Model4_Classic_24_M <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_24 +
       Cortisol_15 + CRP_15 + IL6_24,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -1061,8 +1020,7 @@ Dist_Model4_Classic_17_Whole <- with(
       Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
-      Cortisol_15 + CRP_15,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Cortisol_15 + CRP_15
   )
 )
 
@@ -1074,7 +1032,7 @@ Dist_Model4_Classic_17_F <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
       Cortisol_15 + CRP_15,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1086,7 +1044,7 @@ Dist_Model4_Classic_17_M <- with(
       Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
       Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
       Cortisol_15 + CRP_15,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -1135,8 +1093,7 @@ PWV_Model5_Classic_17_Whole <- with(
       Daily_MVPA_15 + Daily_Light_PA_15 + Diet_pattern_13_calib +
       non_milk_sugar_13 + Weekday_sleep_duration_15y +
       Weekend_sleep_duration_15y + Child_alc_15 + Child_smoke_15 +
-      Cortisol_15 + CRP_15,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+      Cortisol_15 + CRP_15
   )
 )
 
@@ -1400,16 +1357,14 @@ rm(Model5_fits_classic)
 PWV_Model1_CatClassic_17_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    PWV_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    PWV_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years
   )
 )
 
 PWV_Model1_CatClassic_24_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    PWV_24 ~ Classic_ACEs_cat + BP_systolic_24 + Age_24_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    PWV_24 ~ Classic_ACEs_cat + BP_systolic_24 + Age_24_clinic_years
   )
 )
 
@@ -1417,7 +1372,7 @@ PWV_Model1_CatClassic_17_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1425,7 +1380,7 @@ PWV_Model1_CatClassic_17_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -1433,7 +1388,7 @@ PWV_Model1_CatClassic_24_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_24 ~ Classic_ACEs_cat + BP_systolic_24 + Age_24_clinic_years,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1441,23 +1396,21 @@ PWV_Model1_CatClassic_24_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     PWV_24 ~ Classic_ACEs_cat + BP_systolic_24 + Age_24_clinic_years,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
 cIMT_Model1_CatClassic_17_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    cIMT_17 ~ Classic_ACEs_cat + Age_17_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    cIMT_17 ~ Classic_ACEs_cat + Age_17_clinic_years
   )
 )
 
 cIMT_Model1_CatClassic_24_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    cIMT_24 ~ Classic_ACEs_cat + Age_24_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    cIMT_24 ~ Classic_ACEs_cat + Age_24_clinic_years
   )
 )
 
@@ -1465,7 +1418,7 @@ cIMT_Model1_CatClassic_17_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_17 ~ Classic_ACEs_cat + Age_17_clinic_years,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1473,7 +1426,7 @@ cIMT_Model1_CatClassic_17_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_17 ~ Classic_ACEs_cat + Age_17_clinic_years,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -1481,7 +1434,7 @@ cIMT_Model1_CatClassic_24_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_24 ~ Classic_ACEs_cat + Age_24_clinic_years,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1489,15 +1442,14 @@ cIMT_Model1_CatClassic_24_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     cIMT_24 ~ Classic_ACEs_cat + Age_24_clinic_years,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
 Dist_Model1_CatClassic_17_Whole <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
-    Arterial_Dist_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years,
-    subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    Arterial_Dist_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years
   )
 )
 
@@ -1505,7 +1457,7 @@ Dist_Model1_CatClassic_17_F <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     Arterial_Dist_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Female")
   )
 )
 
@@ -1513,7 +1465,7 @@ Dist_Model1_CatClassic_17_M <- with(
   Study1_Imp_Classic_Trns_Reduced,
   lm(
     Arterial_Dist_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years,
-    subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE)
+    subset = (Child_sex == "Male")
   )
 )
 
@@ -1554,8 +1506,25 @@ rm(Model1_fits_CatClassic)
 # Classic_ACEs_cat * Child_sex in the Whole-group Model 2 interaction.
 # Code is omitted here for brevity but follows identically from the continuous
 # ACEs models above. Replace exposure term and update object/file names.
+# As in Section 3, only Models 3 and 5 restrict to
+# PA_include_15 == TRUE & Diet_include_13 == TRUE via `subset =`; Models 2
+# and 4 use the full available (unfiltered) sample.
 #
-# Example for Model 2, PWV, whole group:
+# Example for Model 3 (filtered), PWV, whole group:
+#
+#   PWV_Model3_CatClassic_17_Whole <- with(
+#     Study1_Imp_Classic_Trns_Reduced,
+#     lm(
+#       PWV_17 ~ Classic_ACEs_cat + BP_systolic_17 + Age_17_clinic_years +
+#         Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
+#         Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
+#         Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17 +
+#         Weekend_sleep_duration_15y + Child_alc_15 + Child_smoke_15,
+#       subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+#     )
+#   )
+#
+# Example for Model 2 (unfiltered, with ACE × sex interaction), PWV, whole group:
 #
 #   PWV_Model2_CatClassic_17_Whole <- with(
 #     Study1_Imp_Classic_Trns_Reduced,
@@ -1563,13 +1532,12 @@ rm(Model1_fits_CatClassic)
 #       PWV_17 ~ Classic_ACEs_cat * Child_sex + BP_systolic_17 + Age_17_clinic_years +
 #         Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
 #         Mat_PND_gest + Mat_age_delivery + Birth_weight_kg +
-#         Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17,
-#       subset = (PA_include_15 == TRUE & Diet_include_13 == TRUE)
+#         Mat_preg_smoke + Mat_preg_alc + Family_CVD + Age_PHV_c + BMI_17
 #     )
 #   )
 #
-# And so on for Models 3, 4, 5 following the same pattern as their continuous
-# ACEs counterparts in Sections 3.4–3.6.
+# And so on for Models 4 and 5 following the same pattern as their continuous
+# ACEs counterparts in Sections 3.5–3.6.
 
 
 # Section 5: Model assumption checks (single imputation) ----

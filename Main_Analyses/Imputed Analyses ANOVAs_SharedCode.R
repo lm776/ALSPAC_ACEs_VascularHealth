@@ -1,7 +1,7 @@
 # ACEs and Vascular Health — Imputed MI Cross-Sectional Group Comparisons (D1 Tests)
-# Study:   Adverse Childhood Experiences and Changes in Vascular Health from
-#          Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal
-#          Evidence from the ALSPAC Study
+# Study: Adverse Childhood Experiences and Changes in Vascular Health from
+#        Adolescence to Early Adulthood: Cross-Sectional and Longitudinal
+#        Evidence from the ALSPAC Study
 # Cohort:  Avon Longitudinal Study of Parents and Children (ALSPAC)
 #          Boyd A, et al. (2012) Cohort Profile: the 'children of the 90s'.
 #          International Journal of Epidemiology, 42(1):111-127.

@@ -1,7 +1,7 @@
 # File header ----
 # ACEs and Vascular Health — Imputed Mixed-Effects Trajectory Analyses (Classic ACEs)
 # Study:   Adverse Childhood Experiences and Changes in Vascular Health from
-#          Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal
+#          Adolescence to Early Adulthood: Cross-Sectional and Longitudinal
 #          Evidence from the ALSPAC Study
 # Cohort:  Avon Longitudinal Study of Parents and Children (ALSPAC)
 #          Boyd A, et al. (2012) Cohort Profile: the 'children of the 90s'.
@@ -115,7 +115,7 @@ make_classic_long_imp <- function(dat) {
 get_outcome_subset_imp <- function(long_dat,
                                     outcome = c("PWV", "cIMT"),
                                     sex = c("All", "Female", "Male"),
-                                    restrict_PA_Diet = TRUE) {
+                                    restrict_PA_Diet = FALSE) {
 
   outcome <- match.arg(outcome)
   sex     <- match.arg(sex)
@@ -152,7 +152,7 @@ fit_and_pool <- function(mids_obj,
                          optimizer = "bobyqa",
                          maxfun = 2e5,
                          verbose_imp = TRUE,
-                         restrict_PA_Diet = TRUE) {
+                         restrict_PA_Diet = FALSE) {
 
   outcome <- match.arg(outcome)
   sex     <- match.arg(sex)
@@ -442,13 +442,22 @@ forms_sex_cIMT$M2 <- Model2_cIMT_Classic_sex
 # --- Run models: fit across all imputations, print results to console ---
 
 for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
+
+  # Only Model 3 and Model 5 (which include PA/diet as lifestyle covariates)
+  # restrict to PA_include_15 == TRUE & Diet_include_13 == TRUE; Models 1, 2,
+  # and 4 use the full available (unfiltered) sample.
+  restrict_PA_Diet <- model_id %in% c("M3", "M5")
+
   for (outcome in c("PWV", "cIMT")) {
     for (sex in c("All", "Female", "Male")) {
 
       group <- if (sex == "All") "Whole" else "Sex"
       fml   <- pick_forms(outcome, group)[[model_id]]
 
-      message("Fitting: Classic ", outcome, " ", model_id, " ", sex)
+      message(
+        "Fitting: Classic ", outcome, " ", model_id, " ", sex,
+        " | PA/diet restriction: ", restrict_PA_Diet
+      )
 
       mira <- fit_and_pool(
         mids_obj      = Study1_Imp_Classic_Final_Transformed_V2,
@@ -460,7 +469,8 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
         return        = "mira",
         optimizer     = "bobyqa",
         maxfun        = 2e5,
-        verbose_imp   = TRUE
+        verbose_imp   = TRUE,
+        restrict_PA_Diet = restrict_PA_Diet
       )
 
       print_mixed_results(
@@ -571,13 +581,22 @@ forms_sex_cIMT_cat$M2 <- Model2_cIMT_Classic_cat_sex
 # --- Run models: fit across all imputations, print results to console ---
 
 for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
+
+  # Only Model 3 and Model 5 (which include PA/diet as lifestyle covariates)
+  # restrict to PA_include_15 == TRUE & Diet_include_13 == TRUE; Models 1, 2,
+  # and 4 use the full available (unfiltered) sample.
+  restrict_PA_Diet <- model_id %in% c("M3", "M5")
+
   for (outcome in c("PWV", "cIMT")) {
     for (sex in c("All", "Female", "Male")) {
 
       group <- if (sex == "All") "Whole" else "Sex"
       fml   <- pick_forms_cat(outcome, group)[[model_id]]
 
-      message("Fitting: Classic categorical ", outcome, " ", model_id, " ", sex)
+      message(
+        "Fitting: Classic categorical ", outcome, " ", model_id, " ", sex,
+        " | PA/diet restriction: ", restrict_PA_Diet
+      )
 
       mira <- fit_and_pool(
         mids_obj      = Study1_Imp_Classic_Final_Transformed_V2,
@@ -589,7 +608,8 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
         return        = "mira",
         optimizer     = "bobyqa",
         maxfun        = 2e5,
-        verbose_imp   = TRUE
+        verbose_imp   = TRUE,
+        restrict_PA_Diet = restrict_PA_Diet
       )
 
       print_mixed_results(

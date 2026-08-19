@@ -1,12 +1,13 @@
 # File header ----
 # Complete-Case OLS Regression Analyses
-# Study: Adverse Childhood Experiences (ACEs) and Vascular Health in
-#        Adolescence and Young Adulthood — ALSPAC Cohort
+# Study: Adverse Childhood Experiences and Changes in Vascular Health from
+#        Adolescence to Early Adulthood: Cross-Sectional and Longitudinal
+#        Evidence from the ALSPAC Study
 #
 # Description:
-#   Data preparation (PA/diet inclusion filters, complete-case subsetting)
-#   followed by ordinary least squares (OLS) regression for Classic ACEs
-#   (continuous and categorical) across three vascular outcomes:
+#   Data preparation (complete-case subsetting) followed by ordinary
+#   least squares (OLS) regression for Classic ACEs (continuous and
+#   categorical) across three vascular outcomes:
 #     - Pulse Wave Velocity (PWV) at 17y and 24y
 #     - Carotid Intima-Media Thickness (cIMT) at 17y and 24y
 #     - Arterial Distensibility at 17y
@@ -32,6 +33,10 @@
 #                below via mutate().
 #   - Child_sex reference level: Female (set explicitly below).
 #   - Parent_edu reference level: "No qualifications" (set explicitly below).
+#   - PA_include_15 / Diet_include_13: quality-control flags applied only
+#     as a `subset =` restriction on the Model 3 and Model 5 lm() calls
+#     (which include PA/diet as lifestyle mediators). Models 1, 2, and 4
+#     use the full available sample.
 #
 # Author:  Laura Macro
 # Date:    June 2026
@@ -59,19 +64,21 @@ library(parameters)
 # Replace the path/filename as appropriate for your project directory.
 saveRDS(data_transformed, file = "data_transformed.rds")
 
-# Subset to participants with valid PA and diet data ----
+# PA/diet quality-control flags ----
 # PA_include_15 and Diet_include_13 are quality-control flags in ALSPAC
-# indicating whether the accelerometry and diet recall data meet
-# minimum wear/completion thresholds.
+# indicating whether the accelerometry and diet recall data meet minimum
+# wear/completion thresholds. The working dataset below is NOT filtered
+# on these flags up front: Models 1, 2, and 4 use the full available
+# sample. Only Model 3 and Model 5 (which include PA/diet as lifestyle
+# mediators) restrict to PA_include_15 == TRUE & Diet_include_13 == TRUE,
+# applied via the `subset =` argument on those specific lm() calls below.
 
-data_PA_Diet <- data_transformed %>%
-  filter(PA_include_15 == TRUE,
-         Diet_include_13 == TRUE)
+data_transformed_CC <- data_transformed
 
-saveRDS(data_PA_Diet, file = "data_PA_Diet.rds")
+saveRDS(data_transformed_CC, file = "data_transformed_CC.rds")
 
 # Centre age at peak height velocity ----
-data_PA_Diet <- data_PA_Diet %>%
+data_transformed_CC <- data_transformed_CC %>%
   mutate(Age_PHV_c = Age_PHV - mean(Age_PHV, na.rm = TRUE))
 
 # Unorder ordered factors ----
@@ -85,35 +92,35 @@ vars_to_unorder <- c(
   "Child_alc_15"
 )
 
-vars_to_unorder <- intersect(vars_to_unorder, names(data_PA_Diet))
+vars_to_unorder <- intersect(vars_to_unorder, names(data_transformed_CC))
 
-data_PA_Diet[vars_to_unorder] <- lapply(
-  data_PA_Diet[vars_to_unorder],
+data_transformed_CC[vars_to_unorder] <- lapply(
+  data_transformed_CC[vars_to_unorder],
   function(x) factor(x, ordered = FALSE)
 )
 
 # Set reference categories ----
 
 # Parent education: reference = "No qualifications"
-if ("Parent_edu" %in% names(data_PA_Diet)) {
-  data_PA_Diet$Parent_edu <- relevel(
-    data_PA_Diet$Parent_edu,
+if ("Parent_edu" %in% names(data_transformed_CC)) {
+  data_transformed_CC$Parent_edu <- relevel(
+    data_transformed_CC$Parent_edu,
     ref = "No qualifications"
   )
 }
 
 # Child ethnicity: reference = "White"
-if ("Child_ethnicity" %in% names(data_PA_Diet)) {
-  data_PA_Diet$Child_ethnicity <- relevel(
-    data_PA_Diet$Child_ethnicity,
+if ("Child_ethnicity" %in% names(data_transformed_CC)) {
+  data_transformed_CC$Child_ethnicity <- relevel(
+    data_transformed_CC$Child_ethnicity,
     ref = "White"
   )
 }
 
 # Child alcohol at 15y: set explicit level order (unordered factor)
-if ("Child_alc_15" %in% names(data_PA_Diet)) {
-  data_PA_Diet$Child_alc_15 <- factor(
-    data_PA_Diet$Child_alc_15,
+if ("Child_alc_15" %in% names(data_transformed_CC)) {
+  data_transformed_CC$Child_alc_15 <- factor(
+    data_transformed_CC$Child_alc_15,
     levels = c("None", "1 or 2", "3 to 5", "6 to 9",
                "10 to 19", "20 to 39", "40+"),
     ordered = FALSE
@@ -121,14 +128,14 @@ if ("Child_alc_15" %in% names(data_PA_Diet)) {
 }
 
 # Child sex: restrict to Male/Female, set Female as reference
-if ("Child_sex" %in% names(data_PA_Diet)) {
-  data_PA_Diet$Child_sex <- ifelse(
-    data_PA_Diet$Child_sex %in% c("Male", "Female"),
-    as.character(data_PA_Diet$Child_sex),
+if ("Child_sex" %in% names(data_transformed_CC)) {
+  data_transformed_CC$Child_sex <- ifelse(
+    data_transformed_CC$Child_sex %in% c("Male", "Female"),
+    as.character(data_transformed_CC$Child_sex),
     NA_character_
   )
-  data_PA_Diet$Child_sex <- factor(
-    data_PA_Diet$Child_sex,
+  data_transformed_CC$Child_sex <- factor(
+    data_transformed_CC$Child_sex,
     levels  = c("Female", "Male"),
     ordered = FALSE
   )
@@ -165,7 +172,7 @@ vars_covariates <- c(
 # outcomes (y*_complete_*) and exposures + outcomes + all covariates
 # (y*_cov_complete_*).
 
-data_PA_Diet <- data_PA_Diet %>%
+data_transformed_CC <- data_transformed_CC %>%
   mutate(
     y17_complete_classic = factor(
       complete.cases(select(., all_of(c(vars_exposures_classic,
@@ -211,20 +218,20 @@ data_PA_Diet <- data_PA_Diet %>%
 
 # Create complete-case analysis subsets ----
 
-cov_complete_classic_17 <- data_PA_Diet %>%
+cov_complete_classic_17 <- data_transformed_CC %>%
   filter(!!sym("y17_cov_complete_classic") == "complete")
 
-cov_complete_ext_17 <- data_PA_Diet %>%
+cov_complete_ext_17 <- data_transformed_CC %>%
   filter(!!sym("y17_cov_complete_extended") == "complete")
 
-cov_complete_classic_24 <- data_PA_Diet %>%
+cov_complete_classic_24 <- data_transformed_CC %>%
   filter(!!sym("y24_cov_complete_classic") == "complete")
 
-cov_complete_ext_24 <- data_PA_Diet %>%
+cov_complete_ext_24 <- data_transformed_CC %>%
   filter(!!sym("y24_cov_complete_extended") == "complete")
 
 # Participants complete at both 17y and 24y (used in mixed-effects script)
-cov_complete_both_classic <- data_PA_Diet %>%
+cov_complete_both_classic <- data_transformed_CC %>%
   filter(
     !!sym("y17_cov_complete_classic") == "complete",
     !!sym("y24_cov_complete_classic") == "complete"
@@ -418,13 +425,13 @@ PWV_Model2_Classic_17_Whole <- lm(PWV_17 ~ Classic_ACEs * Child_sex +
 summary(PWV_Model2_Classic_17_Whole)
 
 PWV_Model2_Classic_24_Whole <- lm(PWV_24 ~ Classic_ACEs * Child_sex +
-                                    BP_systolic_24 + Age_17_clinic_years +
+                                    BP_systolic_24 + Age_24_clinic_years +
                                     Townsend_sum + Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
                                     Mat_preg_alc + Family_CVD + Age_PHV_c +
                                     BMI_24,
-                                  cov_complete_classic_17)
+                                  cov_complete_classic_24)
 summary(PWV_Model2_Classic_24_Whole)
 
 PWV_Model2_Classic_17_F <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
@@ -450,7 +457,7 @@ PWV_Model2_Classic_17_M <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
 summary(PWV_Model2_Classic_17_M)
 
 PWV_Model2_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -461,7 +468,7 @@ PWV_Model2_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
 summary(PWV_Model2_Classic_24_F)
 
 PWV_Model2_Classic_24_M <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -492,7 +499,7 @@ cIMT_Model2_Classic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs * Child_sex +
 summary(cIMT_Model2_Classic_17_Whole)
 
 cIMT_Model2_Classic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs * Child_sex +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -521,7 +528,7 @@ cIMT_Model2_Classic_17_M <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
                                 subset = (Child_sex == "Male"))
 summary(cIMT_Model2_Classic_17_M)
 
-cIMT_Model2_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model2_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -531,7 +538,7 @@ cIMT_Model2_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
                                 subset = (Child_sex == "Female"))
 summary(cIMT_Model2_Classic_24_F)
 
-cIMT_Model2_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model2_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -605,11 +612,11 @@ PWV_Model3_Classic_17_Whole <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
                                     Diet_pattern_13_calib + Non_milk_sugar_13 +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15,
-                                  cov_complete_classic_17)
+                                  cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model3_Classic_17_Whole)
 
 PWV_Model3_Classic_24_Whole <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -618,7 +625,7 @@ PWV_Model3_Classic_24_Whole <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
                                     Diet_pattern_13_calib + Non_milk_sugar_13 +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15,
-                                  cov_complete_classic_24)
+                                  cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model3_Classic_24_Whole)
 
 PWV_Model3_Classic_17_F <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
@@ -632,7 +639,7 @@ PWV_Model3_Classic_17_F <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
                                  Weekday_sleep_duration_15y +
                                  Weekend_sleep_duration_15y + Child_alc_15,
                                cov_complete_classic_17,
-                               subset = (Child_sex == "Female"))
+                               subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_Classic_17_F)
 
 PWV_Model3_Classic_17_M <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
@@ -646,11 +653,11 @@ PWV_Model3_Classic_17_M <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
                                  Weekday_sleep_duration_15y +
                                  Weekend_sleep_duration_15y + Child_alc_15,
                                cov_complete_classic_17,
-                               subset = (Child_sex == "Male"))
+                               subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_Classic_17_M)
 
 PWV_Model3_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -660,11 +667,11 @@ PWV_Model3_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
                                  Weekday_sleep_duration_15y +
                                  Weekend_sleep_duration_15y + Child_alc_15,
                                cov_complete_classic_24,
-                               subset = (Child_sex == "Female"))
+                               subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_Classic_24_F)
 
 PWV_Model3_Classic_24_M <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -674,7 +681,7 @@ PWV_Model3_Classic_24_M <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
                                  Weekday_sleep_duration_15y +
                                  Weekend_sleep_duration_15y + Child_alc_15,
                                cov_complete_classic_24,
-                               subset = (Child_sex == "Male"))
+                               subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_Classic_24_M)
 
 # Assumption checks
@@ -695,11 +702,11 @@ cIMT_Model3_Classic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs +
                                      Diet_pattern_13_calib + Non_milk_sugar_13 +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
-                                   data = cov_complete_classic_17)
+                                   data = cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model3_Classic_17_Whole)
 
 cIMT_Model3_Classic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -708,7 +715,7 @@ cIMT_Model3_Classic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs +
                                      Diet_pattern_13_calib + Non_milk_sugar_13 +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
-                                   data = cov_complete_classic_24)
+                                   data = cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model3_Classic_24_Whole)
 
 cIMT_Model3_Classic_17_F <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
@@ -721,7 +728,7 @@ cIMT_Model3_Classic_17_F <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekday_sleep_duration_15y +
                                   Weekend_sleep_duration_15y + Child_alc_15,
                                 data = cov_complete_classic_17,
-                                subset = (Child_sex == "Female"))
+                                subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_Classic_17_F)
 
 # Note: Marital_status removed for male subset due to insufficient variation
@@ -735,10 +742,10 @@ cIMT_Model3_Classic_17_M <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekday_sleep_duration_15y +
                                   Weekend_sleep_duration_15y + Child_alc_15,
                                 data = cov_complete_classic_17,
-                                subset = (Child_sex == "Male"))
+                                subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_Classic_17_M)
 
-cIMT_Model3_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model3_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -748,10 +755,10 @@ cIMT_Model3_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekday_sleep_duration_15y +
                                   Weekend_sleep_duration_15y + Child_alc_15,
                                 data = cov_complete_classic_24,
-                                subset = (Child_sex == "Female"))
+                                subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_Classic_24_F)
 
-cIMT_Model3_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model3_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -761,7 +768,7 @@ cIMT_Model3_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekday_sleep_duration_15y +
                                   Weekend_sleep_duration_15y + Child_alc_15,
                                 data = cov_complete_classic_24,
-                                subset = (Child_sex == "Male"))
+                                subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_Classic_24_M)
 
 # Assumption checks
@@ -782,7 +789,7 @@ Dist_Model3_Classic_17_Whole <- lm(Arterial_Dist_17 ~ Classic_ACEs +
                                      Diet_pattern_13_calib + Non_milk_sugar_13 +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
-                                   cov_complete_classic_17)
+                                   cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(Dist_Model3_Classic_17_Whole)
 
 Dist_Model3_Classic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs +
@@ -796,7 +803,7 @@ Dist_Model3_Classic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs +
                                   Weekday_sleep_duration_15y +
                                   Weekend_sleep_duration_15y + Child_alc_15,
                                 cov_complete_classic_17,
-                                subset = (Child_sex == "Female"))
+                                subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model3_Classic_17_F)
 
 Dist_Model3_Classic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs +
@@ -810,7 +817,7 @@ Dist_Model3_Classic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs +
                                   Weekday_sleep_duration_15y +
                                   Weekend_sleep_duration_15y + Child_alc_15,
                                 cov_complete_classic_17,
-                                subset = (Child_sex == "Male"))
+                                subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model3_Classic_17_M)
 
 # Assumption checks
@@ -833,7 +840,7 @@ PWV_Model4_Classic_17_Whole <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
 summary(PWV_Model4_Classic_17_Whole)
 
 PWV_Model4_Classic_24_Whole <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -865,7 +872,7 @@ PWV_Model4_Classic_17_M <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
 summary(PWV_Model4_Classic_17_M)
 
 PWV_Model4_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -876,7 +883,7 @@ PWV_Model4_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
 summary(PWV_Model4_Classic_24_F)
 
 PWV_Model4_Classic_24_M <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -905,7 +912,7 @@ cIMT_Model4_Classic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs +
 summary(cIMT_Model4_Classic_17_Whole)
 
 cIMT_Model4_Classic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -934,7 +941,7 @@ cIMT_Model4_Classic_17_M <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
                                 subset = (Child_sex == "Male"))
 summary(cIMT_Model4_Classic_17_M)
 
-cIMT_Model4_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model4_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -944,7 +951,7 @@ cIMT_Model4_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
                                 subset = (Child_sex == "Female"))
 summary(cIMT_Model4_Classic_24_F)
 
-cIMT_Model4_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model4_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -1016,11 +1023,11 @@ PWV_Model5_Classic_17_Whole <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15 +
                                     Cortisol_15 + CRP_15 + IL6_24,
-                                  cov_complete_classic_17)
+                                  cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model5_Classic_17_Whole)
 
 PWV_Model5_Classic_24_Whole <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -1030,7 +1037,7 @@ PWV_Model5_Classic_24_Whole <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15 +
                                     Cortisol_15 + CRP_15 + IL6_24,
-                                  cov_complete_classic_24)
+                                  cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model5_Classic_24_Whole)
 
 PWV_Model5_Classic_17_F <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
@@ -1045,7 +1052,7 @@ PWV_Model5_Classic_17_F <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
                                  Weekend_sleep_duration_15y + Child_alc_15 +
                                  Cortisol_15 + CRP_15 + IL6_24,
                                cov_complete_classic_17,
-                               subset = (Child_sex == "Female"))
+                               subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_Classic_17_F)
 
 PWV_Model5_Classic_17_M <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
@@ -1060,11 +1067,11 @@ PWV_Model5_Classic_17_M <- lm(PWV_17 ~ Classic_ACEs + BP_systolic_17 +
                                  Weekend_sleep_duration_15y + Child_alc_15 +
                                  Cortisol_15 + CRP_15 + IL6_24,
                                cov_complete_classic_17,
-                               subset = (Child_sex == "Male"))
+                               subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_Classic_17_M)
 
 PWV_Model5_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -1075,11 +1082,11 @@ PWV_Model5_Classic_24_F <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
                                  Weekend_sleep_duration_15y + Child_alc_15 +
                                  Cortisol_15 + CRP_15 + IL6_24,
                                cov_complete_classic_24,
-                               subset = (Child_sex == "Female"))
+                               subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_Classic_24_F)
 
 PWV_Model5_Classic_24_M <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
-                                 Age_17_clinic_years + Townsend_sum +
+                                 Age_24_clinic_years + Townsend_sum +
                                  Marital_status + Parent_edu +
                                  Mat_PND_gest + Mat_age_delivery +
                                  Birth_weight_kg + Mat_preg_smoke +
@@ -1090,7 +1097,7 @@ PWV_Model5_Classic_24_M <- lm(PWV_24 ~ Classic_ACEs + BP_systolic_24 +
                                  Weekend_sleep_duration_15y + Child_alc_15 +
                                  Cortisol_15 + CRP_15 + IL6_24,
                                cov_complete_classic_24,
-                               subset = (Child_sex == "Male"))
+                               subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_Classic_24_M)
 
 # Assumption checks
@@ -1112,11 +1119,11 @@ cIMT_Model5_Classic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
-                                   cov_complete_classic_17)
+                                   cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model5_Classic_17_Whole)
 
 cIMT_Model5_Classic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -1126,7 +1133,7 @@ cIMT_Model5_Classic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
-                                   cov_complete_classic_24)
+                                   cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model5_Classic_24_Whole)
 
 cIMT_Model5_Classic_17_F <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
@@ -1140,7 +1147,7 @@ cIMT_Model5_Classic_17_F <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekend_sleep_duration_15y + Child_alc_15 +
                                   Cortisol_15 + CRP_15 + IL6_24,
                                 cov_complete_classic_17,
-                                subset = (Child_sex == "Female"))
+                                subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_Classic_17_F)
 
 cIMT_Model5_Classic_17_M <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
@@ -1154,10 +1161,10 @@ cIMT_Model5_Classic_17_M <- lm(cIMT_17 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekend_sleep_duration_15y + Child_alc_15 +
                                   Cortisol_15 + CRP_15 + IL6_24,
                                 cov_complete_classic_17,
-                                subset = (Child_sex == "Male"))
+                                subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_Classic_17_M)
 
-cIMT_Model5_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model5_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -1168,10 +1175,10 @@ cIMT_Model5_Classic_24_F <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekend_sleep_duration_15y + Child_alc_15 +
                                   Cortisol_15 + CRP_15 + IL6_24,
                                 cov_complete_classic_24,
-                                subset = (Child_sex == "Female"))
+                                subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_Classic_24_F)
 
-cIMT_Model5_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
+cIMT_Model5_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_24_clinic_years +
                                   Townsend_sum + Marital_status + Parent_edu +
                                   Mat_PND_gest + Mat_age_delivery +
                                   Birth_weight_kg + Mat_preg_smoke +
@@ -1182,7 +1189,7 @@ cIMT_Model5_Classic_24_M <- lm(cIMT_24 ~ Classic_ACEs + Age_17_clinic_years +
                                   Weekend_sleep_duration_15y + Child_alc_15 +
                                   Cortisol_15 + CRP_15 + IL6_24,
                                 cov_complete_classic_24,
-                                subset = (Child_sex == "Male"))
+                                subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_Classic_24_M)
 
 # Assumption checks
@@ -1204,7 +1211,7 @@ Dist_Model5_Classic_17_Whole <- lm(Arterial_Dist_17 ~ Classic_ACEs +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
-                                   cov_complete_classic_17)
+                                   cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(Dist_Model5_Classic_17_Whole)
 
 Dist_Model5_Classic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs +
@@ -1219,7 +1226,7 @@ Dist_Model5_Classic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs +
                                   Weekend_sleep_duration_15y + Child_alc_15 +
                                   Cortisol_15 + CRP_15 + IL6_24,
                                 cov_complete_classic_17,
-                                subset = (Child_sex == "Female"))
+                                subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model5_Classic_17_F)
 
 Dist_Model5_Classic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs +
@@ -1234,7 +1241,7 @@ Dist_Model5_Classic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs +
                                   Weekend_sleep_duration_15y + Child_alc_15 +
                                   Cortisol_15 + CRP_15 + IL6_24,
                                 cov_complete_classic_17,
-                                subset = (Child_sex == "Male"))
+                                subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model5_Classic_17_M)
 
 # Assumption checks
@@ -1393,8 +1400,7 @@ Dist_Model1_CatClassic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                    subset = (Child_sex == "Female"))
 summary(Dist_Model1_CatClassic_17_F)
 
-# Note: Age_17_clinic_years corrected here (original had Age_24_clinic_years
-# by copy-paste error)
+
 Dist_Model1_CatClassic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                      BP_systolic_17 + Age_17_clinic_years,
                                    cov_complete_classic_17,
@@ -1435,13 +1441,13 @@ PWV_Model2_CatClassic_17_Whole <- lm(PWV_17 ~ Classic_ACEs_Cat * Child_sex +
 summary(PWV_Model2_CatClassic_17_Whole)
 
 PWV_Model2_CatClassic_24_Whole <- lm(PWV_24 ~ Classic_ACEs_Cat * Child_sex +
-                                       BP_systolic_24 + Age_17_clinic_years +
+                                       BP_systolic_24 + Age_24_clinic_years +
                                         Townsend_sum + Marital_status +
                                         Parent_edu + Mat_PND_gest +
                                         Mat_age_delivery + Birth_weight_kg +
                                         Mat_preg_smoke + Mat_preg_alc +
                                         Family_CVD + Age_PHV_c + BMI_24,
-                                      cov_complete_classic_17)
+                                      cov_complete_classic_24)
 summary(PWV_Model2_CatClassic_24_Whole)
 
 PWV_Model2_CatClassic_17_F <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
@@ -1467,7 +1473,7 @@ PWV_Model2_CatClassic_17_M <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
 summary(PWV_Model2_CatClassic_17_M)
 
 PWV_Model2_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -1478,7 +1484,7 @@ PWV_Model2_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
 summary(PWV_Model2_CatClassic_24_F)
 
 PWV_Model2_CatClassic_24_M <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -1509,7 +1515,7 @@ cIMT_Model2_CatClassic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs_Cat * Child_sex +
 summary(cIMT_Model2_CatClassic_17_Whole)
 
 cIMT_Model2_CatClassic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs_Cat * Child_sex +
-                                         Age_17_clinic_years + Townsend_sum +
+                                         Age_24_clinic_years + Townsend_sum +
                                          Marital_status + Parent_edu +
                                          Mat_PND_gest + Mat_age_delivery +
                                          Birth_weight_kg + Mat_preg_smoke +
@@ -1541,7 +1547,7 @@ cIMT_Model2_CatClassic_17_M <- lm(cIMT_17 ~ Classic_ACEs_Cat +
 summary(cIMT_Model2_CatClassic_17_M)
 
 cIMT_Model2_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -1552,7 +1558,7 @@ cIMT_Model2_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
 summary(cIMT_Model2_CatClassic_24_F)
 
 cIMT_Model2_CatClassic_24_M <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -1627,7 +1633,7 @@ PWV_Model3_CatClassic_17_Whole <- lm(PWV_17 ~ Classic_ACEs_Cat +
                                         Diet_pattern_13_calib + Non_milk_sugar_13 +
                                         Weekday_sleep_duration_15y +
                                         Weekend_sleep_duration_15y + Child_alc_15,
-                                      cov_complete_classic_17)
+                                      cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model3_CatClassic_17_Whole)
 
 PWV_Model3_CatClassic_24_Whole <- lm(PWV_24 ~ Classic_ACEs_Cat +
@@ -1638,7 +1644,7 @@ PWV_Model3_CatClassic_24_Whole <- lm(PWV_24 ~ Classic_ACEs_Cat +
                                         Family_CVD + Age_PHV_c + BMI_24 +
                                         Daily_MVPA_15 + Daily_Light_PA_15 +
                                         Diet_pattern_13_calib,
-                                      cov_complete_classic_24)
+                                      cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model3_CatClassic_24_Whole)
 
 PWV_Model3_CatClassic_17_F <- lm(PWV_17 ~ Classic_ACEs_Cat +
@@ -1651,7 +1657,7 @@ PWV_Model3_CatClassic_17_F <- lm(PWV_17 ~ Classic_ACEs_Cat +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15,
                                   cov_complete_classic_17,
-                                  subset = (Child_sex == "Female"))
+                                  subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_CatClassic_17_F)
 
 PWV_Model3_CatClassic_17_M <- lm(PWV_17 ~ Classic_ACEs_Cat +
@@ -1664,7 +1670,7 @@ PWV_Model3_CatClassic_17_M <- lm(PWV_17 ~ Classic_ACEs_Cat +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15,
                                   cov_complete_classic_17,
-                                  subset = (Child_sex == "Male"))
+                                  subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_CatClassic_17_M)
 
 PWV_Model3_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat +
@@ -1677,7 +1683,7 @@ PWV_Model3_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15,
                                   cov_complete_classic_24,
-                                  subset = (Child_sex == "Female"))
+                                  subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_CatClassic_24_F)
 
 PWV_Model3_CatClassic_24_M <- lm(PWV_24 ~ Classic_ACEs_Cat +
@@ -1690,7 +1696,7 @@ PWV_Model3_CatClassic_24_M <- lm(PWV_24 ~ Classic_ACEs_Cat +
                                     Weekday_sleep_duration_15y +
                                     Weekend_sleep_duration_15y + Child_alc_15,
                                   cov_complete_classic_24,
-                                  subset = (Child_sex == "Male"))
+                                  subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model3_CatClassic_24_M)
 
 # Assumption checks
@@ -1712,11 +1718,11 @@ cIMT_Model3_CatClassic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs_Cat +
                                          Diet_pattern_13_calib + Non_milk_sugar_13 +
                                          Weekday_sleep_duration_15y +
                                          Weekend_sleep_duration_15y + Child_alc_15,
-                                       data = cov_complete_classic_17)
+                                       data = cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model3_CatClassic_17_Whole)
 
 cIMT_Model3_CatClassic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                         Age_17_clinic_years + Townsend_sum +
+                                         Age_24_clinic_years + Townsend_sum +
                                          Marital_status + Parent_edu +
                                          Mat_PND_gest + Mat_age_delivery +
                                          Birth_weight_kg + Mat_preg_smoke +
@@ -1726,7 +1732,7 @@ cIMT_Model3_CatClassic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs_Cat +
                                          Diet_pattern_13_calib + Non_milk_sugar_13 +
                                          Weekday_sleep_duration_15y +
                                          Weekend_sleep_duration_15y + Child_alc_15,
-                                       data = cov_complete_classic_24)
+                                       data = cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model3_CatClassic_24_Whole)
 
 cIMT_Model3_CatClassic_17_F <- lm(cIMT_17 ~ Classic_ACEs_Cat +
@@ -1740,7 +1746,7 @@ cIMT_Model3_CatClassic_17_F <- lm(cIMT_17 ~ Classic_ACEs_Cat +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
                                    data = cov_complete_classic_17,
-                                   subset = (Child_sex == "Female"))
+                                   subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_CatClassic_17_F)
 
 cIMT_Model3_CatClassic_17_M <- lm(cIMT_17 ~ Classic_ACEs_Cat +
@@ -1754,11 +1760,11 @@ cIMT_Model3_CatClassic_17_M <- lm(cIMT_17 ~ Classic_ACEs_Cat +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
                                    data = cov_complete_classic_17,
-                                   subset = (Child_sex == "Male"))
+                                   subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_CatClassic_17_M)
 
 cIMT_Model3_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -1768,11 +1774,11 @@ cIMT_Model3_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
                                    data = cov_complete_classic_24,
-                                   subset = (Child_sex == "Female"))
+                                   subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_CatClassic_24_F)
 
 cIMT_Model3_CatClassic_24_M <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -1782,7 +1788,7 @@ cIMT_Model3_CatClassic_24_M <- lm(cIMT_24 ~ Classic_ACEs_Cat +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
                                    data = cov_complete_classic_24,
-                                   subset = (Child_sex == "Male"))
+                                   subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model3_CatClassic_24_M)
 
 # Assumption checks
@@ -1804,7 +1810,7 @@ Dist_Model3_CatClassic_17_Whole <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                          Diet_pattern_13_calib + Non_milk_sugar_13 +
                                          Weekday_sleep_duration_15y +
                                          Weekend_sleep_duration_15y + Child_alc_15,
-                                       cov_complete_classic_17)
+                                       cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(Dist_Model3_CatClassic_17_Whole)
 
 Dist_Model3_CatClassic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
@@ -1818,7 +1824,7 @@ Dist_Model3_CatClassic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
                                    cov_complete_classic_17,
-                                   subset = (Child_sex == "Female"))
+                                   subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model3_CatClassic_17_F)
 
 Dist_Model3_CatClassic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
@@ -1832,7 +1838,7 @@ Dist_Model3_CatClassic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                      Weekday_sleep_duration_15y +
                                      Weekend_sleep_duration_15y + Child_alc_15,
                                    cov_complete_classic_17,
-                                   subset = (Child_sex == "Male"))
+                                   subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model3_CatClassic_17_M)
 
 # Assumption checks
@@ -1856,7 +1862,7 @@ PWV_Model4_CatClassic_17_Whole <- lm(PWV_17 ~ Classic_ACEs_Cat +
 summary(PWV_Model4_CatClassic_17_Whole)
 
 PWV_Model4_CatClassic_24_Whole <- lm(PWV_24 ~ Classic_ACEs_Cat +
-                                        BP_systolic_24 + Age_17_clinic_years +
+                                        BP_systolic_24 + Age_24_clinic_years +
                                         Townsend_sum + Marital_status +
                                         Parent_edu + Mat_PND_gest +
                                         Mat_age_delivery + Birth_weight_kg +
@@ -1889,7 +1895,7 @@ PWV_Model4_CatClassic_17_M <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
 summary(PWV_Model4_CatClassic_17_M)
 
 PWV_Model4_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -1900,7 +1906,7 @@ PWV_Model4_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
 summary(PWV_Model4_CatClassic_24_F)
 
 PWV_Model4_CatClassic_24_M <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -1929,7 +1935,7 @@ cIMT_Model4_CatClassic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs_Cat +
 summary(cIMT_Model4_CatClassic_17_Whole)
 
 cIMT_Model4_CatClassic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                         Age_17_clinic_years + Townsend_sum +
+                                         Age_24_clinic_years + Townsend_sum +
                                          Marital_status + Parent_edu +
                                          Mat_PND_gest + Mat_age_delivery +
                                          Birth_weight_kg + Mat_preg_smoke +
@@ -1961,7 +1967,7 @@ cIMT_Model4_CatClassic_17_M <- lm(cIMT_17 ~ Classic_ACEs_Cat +
 summary(cIMT_Model4_CatClassic_17_M)
 
 cIMT_Model4_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -1972,7 +1978,7 @@ cIMT_Model4_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
 summary(cIMT_Model4_CatClassic_24_F)
 
 cIMT_Model4_CatClassic_24_M <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -2045,11 +2051,11 @@ PWV_Model5_CatClassic_17_Whole <- lm(PWV_17 ~ Classic_ACEs_Cat +
                                         Weekday_sleep_duration_15y +
                                         Weekend_sleep_duration_15y + Child_alc_15 +
                                         Cortisol_15 + CRP_15 + IL6_24,
-                                      cov_complete_classic_17)
+                                      cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model5_CatClassic_17_Whole)
 
 PWV_Model5_CatClassic_24_Whole <- lm(PWV_24 ~ Classic_ACEs_Cat +
-                                        BP_systolic_24 + Age_17_clinic_years +
+                                        BP_systolic_24 + Age_24_clinic_years +
                                         Townsend_sum + Marital_status +
                                         Parent_edu + Mat_PND_gest +
                                         Mat_age_delivery + Birth_weight_kg +
@@ -2060,7 +2066,7 @@ PWV_Model5_CatClassic_24_Whole <- lm(PWV_24 ~ Classic_ACEs_Cat +
                                         Weekday_sleep_duration_15y +
                                         Weekend_sleep_duration_15y + Child_alc_15 +
                                         Cortisol_15 + CRP_15 + IL6_24,
-                                      cov_complete_classic_24)
+                                      cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(PWV_Model5_CatClassic_24_Whole)
 
 PWV_Model5_CatClassic_17_F <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
@@ -2073,7 +2079,7 @@ PWV_Model5_CatClassic_17_F <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
                                     Diet_pattern_13_calib +
                                     Cortisol_15 + CRP_15 + IL6_24,
                                   cov_complete_classic_17,
-                                  subset = (Child_sex == "Female"))
+                                  subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_CatClassic_17_F)
 
 PWV_Model5_CatClassic_17_M <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
@@ -2088,11 +2094,11 @@ PWV_Model5_CatClassic_17_M <- lm(PWV_17 ~ Classic_ACEs_Cat + BP_systolic_17 +
                                     Weekend_sleep_duration_15y + Child_alc_15 +
                                     Cortisol_15 + CRP_15 + IL6_24,
                                   cov_complete_classic_17,
-                                  subset = (Child_sex == "Male"))
+                                  subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_CatClassic_17_M)
 
 PWV_Model5_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -2103,11 +2109,11 @@ PWV_Model5_CatClassic_24_F <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
                                     Weekend_sleep_duration_15y + Child_alc_15 +
                                     Cortisol_15 + CRP_15 + IL6_24,
                                   cov_complete_classic_24,
-                                  subset = (Child_sex == "Female"))
+                                  subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_CatClassic_24_F)
 
 PWV_Model5_CatClassic_24_M <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
-                                    Age_17_clinic_years + Townsend_sum +
+                                    Age_24_clinic_years + Townsend_sum +
                                     Marital_status + Parent_edu +
                                     Mat_PND_gest + Mat_age_delivery +
                                     Birth_weight_kg + Mat_preg_smoke +
@@ -2118,7 +2124,7 @@ PWV_Model5_CatClassic_24_M <- lm(PWV_24 ~ Classic_ACEs_Cat + BP_systolic_24 +
                                     Weekend_sleep_duration_15y + Child_alc_15 +
                                     Cortisol_15 + CRP_15 + IL6_24,
                                   cov_complete_classic_24,
-                                  subset = (Child_sex == "Male"))
+                                  subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(PWV_Model5_CatClassic_24_M)
 
 # Assumption checks
@@ -2141,11 +2147,11 @@ cIMT_Model5_CatClassic_17_Whole <- lm(cIMT_17 ~ Classic_ACEs_Cat +
                                          Weekday_sleep_duration_15y +
                                          Weekend_sleep_duration_15y + Child_alc_15 +
                                          Cortisol_15 + CRP_15 + IL6_24,
-                                       cov_complete_classic_17)
+                                       cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model5_CatClassic_17_Whole)
 
 cIMT_Model5_CatClassic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                         Age_17_clinic_years + Townsend_sum +
+                                         Age_24_clinic_years + Townsend_sum +
                                          Marital_status + Parent_edu +
                                          Mat_PND_gest + Mat_age_delivery +
                                          Birth_weight_kg + Mat_preg_smoke +
@@ -2156,7 +2162,7 @@ cIMT_Model5_CatClassic_24_Whole <- lm(cIMT_24 ~ Classic_ACEs_Cat +
                                          Weekday_sleep_duration_15y +
                                          Weekend_sleep_duration_15y + Child_alc_15 +
                                          Cortisol_15 + CRP_15 + IL6_24,
-                                       cov_complete_classic_24)
+                                       cov_complete_classic_24, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(cIMT_Model5_CatClassic_24_Whole)
 
 cIMT_Model5_CatClassic_17_F <- lm(cIMT_17 ~ Classic_ACEs_Cat +
@@ -2171,7 +2177,7 @@ cIMT_Model5_CatClassic_17_F <- lm(cIMT_17 ~ Classic_ACEs_Cat +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
                                    cov_complete_classic_17,
-                                   subset = (Child_sex == "Female"))
+                                   subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_CatClassic_17_F)
 
 cIMT_Model5_CatClassic_17_M <- lm(cIMT_17 ~ Classic_ACEs_Cat +
@@ -2186,11 +2192,11 @@ cIMT_Model5_CatClassic_17_M <- lm(cIMT_17 ~ Classic_ACEs_Cat +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
                                    cov_complete_classic_17,
-                                   subset = (Child_sex == "Male"))
+                                   subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_CatClassic_17_M)
 
 cIMT_Model5_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -2201,11 +2207,11 @@ cIMT_Model5_CatClassic_24_F <- lm(cIMT_24 ~ Classic_ACEs_Cat +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
                                    cov_complete_classic_24,
-                                   subset = (Child_sex == "Female"))
+                                   subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_CatClassic_24_F)
 
 cIMT_Model5_CatClassic_24_M <- lm(cIMT_24 ~ Classic_ACEs_Cat +
-                                     Age_17_clinic_years + Townsend_sum +
+                                     Age_24_clinic_years + Townsend_sum +
                                      Marital_status + Parent_edu +
                                      Mat_PND_gest + Mat_age_delivery +
                                      Birth_weight_kg + Mat_preg_smoke +
@@ -2214,7 +2220,7 @@ cIMT_Model5_CatClassic_24_M <- lm(cIMT_24 ~ Classic_ACEs_Cat +
                                      Diet_pattern_13_calib +
                                      Cortisol_15 + CRP_15 + IL6_24,
                                    cov_complete_classic_24,
-                                   subset = (Child_sex == "Male"))
+                                   subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(cIMT_Model5_CatClassic_24_M)
 
 # Assumption checks
@@ -2237,7 +2243,7 @@ Dist_Model5_CatClassic_17_Whole <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                          Weekday_sleep_duration_15y +
                                          Weekend_sleep_duration_15y + Child_alc_15 +
                                          Cortisol_15 + CRP_15 + IL6_24,
-                                       cov_complete_classic_17)
+                                       cov_complete_classic_17, subset = PA_include_15 == TRUE & Diet_include_13 == TRUE)
 summary(Dist_Model5_CatClassic_17_Whole)
 
 Dist_Model5_CatClassic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
@@ -2252,7 +2258,7 @@ Dist_Model5_CatClassic_17_F <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
                                    cov_complete_classic_17,
-                                   subset = (Child_sex == "Female"))
+                                   subset = (Child_sex == "Female" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model5_CatClassic_17_F)
 
 Dist_Model5_CatClassic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
@@ -2267,7 +2273,7 @@ Dist_Model5_CatClassic_17_M <- lm(Arterial_Dist_17 ~ Classic_ACEs_Cat +
                                      Weekend_sleep_duration_15y + Child_alc_15 +
                                      Cortisol_15 + CRP_15 + IL6_24,
                                    cov_complete_classic_17,
-                                   subset = (Child_sex == "Male"))
+                                   subset = (Child_sex == "Male" & PA_include_15 == TRUE & Diet_include_13 == TRUE))
 summary(Dist_Model5_CatClassic_17_M)
 
 # Assumption checks

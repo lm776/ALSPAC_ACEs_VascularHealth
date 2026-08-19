@@ -1,8 +1,8 @@
 # File header ----
-# ACEs and Vascular Health — Preliminary Analysis
-# Study:   Adverse Childhood Experiences and Changes in Vascular Health from 
-#          Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal Evidence 
-#          from the ALSPAC Study
+# ACEs and Cardiovascular Disease Risk Factors — Preliminary Analysis
+# Study:   Adverse Childhood Experiences and Changes in Vascular Health from
+#          Adolescence to Early Adulthood: Cross-Sectional and Longitudinal
+#          Evidence from the ALSPAC Study
 # Cohort:  Avon Longitudinal Study of Parents and Children (ALSPAC)
 #          Boyd A, et al. (2012) Cohort Profile: the 'children of the 90s'.
 #          International Journal of Epidemiology, 42(1):111-127.
@@ -37,10 +37,9 @@ library(car)
 # Set your working directory and load the ALSPAC dataset here.
 # The raw data object is referred to as `raw_data` throughout this script.
 # Users must have approved ALSPAC access and load their own extract.
-#
-# Example:
-#   setwd("path/to/your/project")
-#   raw_data <- haven::read_spss("your_alspac_extract.sav")
+
+setwd("Your_directory_path_here")  # <-- Update this to your working directory
+raw_data <- haven::read_spss("yout_ALSPAC_data_extract.sav")  # <-- Update this to your ALSPAC data file
 
 
 # Section 2: Variable dictionary ----

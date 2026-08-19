@@ -1,8 +1,8 @@
 # File header ----
 # ACEs and Vascular Health — Multiple Imputation Setup
 # Study:  Adverse Childhood Experiences and Changes in Vascular Health from 
-#         Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal Evidence 
-#         from the ALSPAC Study
+#         Adolescence to Early Adulthood: Cross-Sectional and Longitudinal 
+#         Evidence from the ALSPAC Study
 # Cohort:  Avon Longitudinal Study of Parents and Children (ALSPAC)
 #          Boyd A, et al. (2012) Cohort Profile: the 'children of the 90s'.
 #          International Journal of Epidemiology, 42(1):111-127.

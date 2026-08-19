@@ -1,7 +1,7 @@
 # Complete-Case Longitudinal Mixed-Effects Models
 # Study: Adverse Childhood Experiences and Changes in Vascular Health from 
-#    Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal Evidence from
-#    the ALSPAC Study
+#    Adolescence to Early Adulthood: Cross-Sectional and Longitudinal Evidence
+#    from the ALSPAC Study
 #
 # Description:
 #   Fits linear mixed-effects models (random intercept per child) for
@@ -168,17 +168,43 @@ fit_cc_one <- function(fixed_formula, df, id = "cidB4619") {
 
 # Section 6: Build a results table for one model ----
 
-cc_results_table <- function(mod, id = "cidB4619") {
+cc_results_table <- function(mod, df, id = "cidB4619") {
+
+  # N participants / N observations rows ----
+  # Reported from the model frame when fitting succeeded, or from the
+  # input data frame (pre-fit) when it failed, so every output table
+  # states the sample size the model was fitted on.
+  if (inherits(mod, "merMod")) {
+    model_df       <- stats::model.frame(mod)
+    n_participants <- dplyr::n_distinct(model_df[[id]])
+    n_observations <- nrow(model_df)
+  } else {
+    n_participants <- dplyr::n_distinct(df[[id]])
+    n_observations <- nrow(df)
+  }
+
+  n_rows <- tibble::tibble(
+    term      = c("N participants", "N outcome observations"),
+    estimate  = c(n_participants, n_observations),
+    std.error = NA_real_,
+    statistic = NA_real_,
+    df        = NA_character_,
+    p.value   = NA_real_,
+    CI        = NA_character_
+  )
 
   if (!inherits(mod, "merMod")) {
-    return(tibble::tibble(
-      term      = "MODEL FAILED",
-      estimate  = NA_real_,
-      std.error = NA_real_,
-      statistic = NA_real_,
-      df        = NA_character_,
-      p.value   = NA_real_,
-      CI        = conditionMessage(mod)
+    return(dplyr::bind_rows(
+      n_rows,
+      tibble::tibble(
+        term      = "MODEL FAILED",
+        estimate  = NA_real_,
+        std.error = NA_real_,
+        statistic = NA_real_,
+        df        = NA_character_,
+        p.value   = NA_real_,
+        CI        = conditionMessage(mod)
+      )
     ))
   }
 
@@ -228,7 +254,7 @@ cc_results_table <- function(mod, id = "cidB4619") {
                          round(conf.high, 3), "]")
     )
 
-  dplyr::bind_rows(fit_part, fe)
+  dplyr::bind_rows(n_rows, fit_part, fe)
 }
 
 
@@ -263,7 +289,7 @@ write_one_doc_per_model_cc <- function(dat_cc,
     message("Fitting (CC whole): ", outcome, " ", model_id)
 
     mod <- fit_cc_one(fixed, df, id = id)
-    tab <- cc_results_table(mod, id = id)
+    tab <- cc_results_table(mod, df = df, id = id)
 
     fit_rows <- which(is.na(tab$statistic))
     ft       <- flextable::flextable(tab) %>% flextable::autofit()
