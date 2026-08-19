@@ -2,7 +2,7 @@
 
 This repository shares the analysis code used in the study:
 
-> **"Adverse Childhood Experiences and Changes in Vascular Health from Childhood to Mid-Adulthood: Cross-Sectional and Longitudinal Evidence from the ALSPAC Study"**
+> **"Adverse Childhood Experiences and Changes in Vascular Health from Childhood to Early Adulthood: Cross-Sectional and Longitudinal Evidence from the ALSPAC Study"**
 > (in preparation - authors hidden for blinded review purposes)
 
 The study was pre-registered via OSF: [https://osf.io/6gxn8/overview?view_only=1e2e34729194476cb8c74380d653e696](https://osf.io/6gxn8/overview?view_only=1e2e34729194476cb8c74380d653e696)
