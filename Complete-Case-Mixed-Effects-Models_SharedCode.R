@@ -473,4 +473,3 @@ files_written_cc <- lapply(c("M1", "M2", "M3", "M4", "M5"), function(m) {
   )
 })
 
-files_written_cc

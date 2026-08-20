@@ -354,7 +354,7 @@ pick_forms_ext <- function(outcome, group) {
 # PWV (includes BP_systolic)
 Model1_PWV_Classic <- Y ~ age_clinic_centred * Classic_ACEs + BP_systolic
 
-Model2__PWV_Classic_whole <- Y ~ age_clinic_centred * Classic_ACEs * Child_sex + BP_systolic +
+Model2_PWV_Classic_whole <- Y ~ age_clinic_centred * Classic_ACEs * Child_sex + BP_systolic +
   Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
   Mat_PND_gest + Mat_age_delivery + Birth_weight_kg + Mat_preg_smoke + Mat_preg_alc +
   Family_CVD + Age_PHV_c + BMI
@@ -418,7 +418,7 @@ Model5_cIMT_Classic <- Y ~ age_clinic_centred * Classic_ACEs +
 # Formula lists
 forms_whole_PWV <- list(
   M1 = Model1_PWV_Classic,
-  M2 = Model2__PWV_Classic_whole,
+  M2 = Model2_PWV_Classic_whole,
   M3 = Model3_PWV_Classic,
   M4 = Model4_PWV_Classic,
   M5 = Model5_PWV_Classic
@@ -493,7 +493,7 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
 # PWV (includes BP_systolic)
 Model1_PWV_Classic_cat <- Y ~ age_clinic_centred * Classic_ACEs_cat + BP_systolic
 
-Model2__PWV_Classic_cat_whole <- Y ~ age_clinic_centred * Classic_ACEs_cat * Child_sex +
+Model2_PWV_Classic_cat_whole <- Y ~ age_clinic_centred * Classic_ACEs_cat * Child_sex +
   BP_systolic + Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
   Mat_PND_gest + Mat_age_delivery + Birth_weight_kg + Mat_preg_smoke + Mat_preg_alc +
   Family_CVD + Age_PHV_c + BMI
@@ -557,7 +557,7 @@ Model5_cIMT_Classic_cat <- Y ~ age_clinic_centred * Classic_ACEs_cat +
 # Formula lists
 forms_whole_PWV_cat <- list(
   M1 = Model1_PWV_Classic_cat,
-  M2 = Model2__PWV_Classic_cat_whole,
+  M2 = Model2_PWV_Classic_cat_whole,
   M3 = Model3_PWV_Classic_cat,
   M4 = Model4_PWV_Classic_cat,
   M5 = Model5_PWV_Classic_cat
@@ -603,7 +603,7 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
         outcome       = outcome,
         sex           = sex,
         fixed_formula = fml,
-        child_id      = "cidB4619",
+        child_id      = "child_id",
         random_slope_age = FALSE,
         return        = "mira",
         optimizer     = "bobyqa",
@@ -615,7 +615,7 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
       print_mixed_results(
         mira,
         label  = paste("Classic ACEs (categorical) |", outcome, "|", model_id, "|", sex_label(sex)),
-        groups = "cidB4619"
+        groups = "child_id"
       )
 
       rm(mira)
@@ -632,7 +632,7 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
 # PWV (includes BP_systolic)
 Model1_PWV_Extended <- Y ~ age_clinic_centred * Extended_ACEs + BP_systolic
 
-Model2__PWV_Extended_whole <- Y ~ age_clinic_centred * Extended_ACEs * Child_sex +
+Model2_PWV_Extended_whole <- Y ~ age_clinic_centred * Extended_ACEs * Child_sex +
   BP_systolic + Child_ethnicity + Townsend_sum + Marital_status + Parent_edu +
   Mat_PND_gest + Mat_age_delivery + Birth_weight_kg + Mat_preg_smoke + Mat_preg_alc +
   Family_CVD + Age_PHV_c + BMI
@@ -696,7 +696,7 @@ Model5_cIMT_Extended <- Y ~ age_clinic_centred * Extended_ACEs +
 # Formula lists
 forms_whole_PWV_ext <- list(
   M1 = Model1_PWV_Extended,
-  M2 = Model2__PWV_Extended_whole,
+  M2 = Model2_PWV_Extended_whole,
   M3 = Model3_PWV_Extended,
   M4 = Model4_PWV_Extended,
   M5 = Model5_PWV_Extended
@@ -720,31 +720,39 @@ forms_sex_cIMT_ext$M2 <- Model2_cIMT_Extended_sex
 # --- Run models: fit across all imputations, print results to console ---
 
 for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
+  # Only Model 3 and Model 5 (which include PA/diet as lifestyle covariates)
+  # restrict to PA_include_15 == TRUE & Diet_include_13 == TRUE; Models 1, 2,
+  # and 4 use the full available (unfiltered) sample.
+  restrict_PA_Diet <- model_id %in% c("M3", "M5")
+  
   for (outcome in c("PWV", "cIMT")) {
     for (sex in c("All", "Female", "Male")) {
 
       group <- if (sex == "All") "Whole" else "Sex"
       fml   <- pick_forms_ext(outcome, group)[[model_id]]
 
-      message("Fitting: Extended ", outcome, " ", model_id, " ", sex)
+      message("Fitting: Extended ", outcome, " ", model_id, " ", sex,
+              " | PA/diet restriction: ", restrict_PA_Diet
+      )
 
       mira <- fit_and_pool(
         mids_obj      = Study1_Imp_Ext_Trns_Reduced,
         outcome       = outcome,
         sex           = sex,
         fixed_formula = fml,
-        child_id      = "cidB4619",
+        child_id      = "child_id",
         random_slope_age = FALSE,
         return        = "mira",
         optimizer     = "bobyqa",
         maxfun        = 2e5,
-        verbose_imp   = TRUE
+        verbose_imp   = TRUE,
+        restrict_PA_Diet = restrict_PA_Diet
       )
 
       print_mixed_results(
         mira,
         label  = paste("Extended ACEs (continuous) |", outcome, "|", model_id, "|", sex_label(sex)),
-        groups = "cidB4619"
+        groups = "child_id"
       )
 
       rm(mira)
@@ -752,10 +760,3 @@ for (model_id in c("M1", "M2", "M3", "M4", "M5")) {
     }
   }
 }
-
-
-# Section 6: Clean up ----
-
-rm(forms_whole_PWV,     forms_whole_cIMT,     forms_sex_PWV,     forms_sex_cIMT,
-   forms_whole_PWV_cat, forms_whole_cIMT_cat, forms_sex_PWV_cat, forms_sex_cIMT_cat,
-   forms_whole_PWV_ext, forms_whole_cIMT_ext, forms_sex_PWV_ext, forms_sex_cIMT_ext)

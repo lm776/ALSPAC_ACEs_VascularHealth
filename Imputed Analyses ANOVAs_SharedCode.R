@@ -94,7 +94,11 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
     "Mat_PND_gest", "Mat_age_delivery", "Birth_weight_kg",
     "Mat_preg_smoke", "Mat_preg_alc", "Family_CVD", "Age_PHV_c"
   )
-  nuisance_wave <- c(bmi, agec, bp)
+  if (outcome %in% c("PWV", "Arterial_Dist")) {
+    nuisance_wave <- c(bmi, agec, bp)
+  } else {  # cIMT
+    nuisance_wave <- c(bmi, agec)
+  }  
   nuisance_vars <- c(nuisance_base, nuisance_wave)
 
   emm_list <- lapply(mira$analyses, function(fit) {
@@ -135,7 +139,7 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
   emm_all <- dplyr::bind_rows(lapply(emm_list, `[[`, "emmeans"), .id = "imp")
 
   emm_pooled <- emm_all |>
-    dplyr::group_by(Classic_ACEs_cat) |>
+    dplyr::group_by(Classic_ACEs_cat, Child_sex) |>
     dplyr::summarise(
       m   = dplyr::n(),
       est = mean(estimate),
@@ -313,9 +317,10 @@ run_mi_d1_suite_clean <- function(mids_obj,
     if (model == "M2" && group == "Whole") {
       emm_results <- compute_mi_pairwise_emmeans(
         mira,
-        interaction  = include_sex_interaction_M2,
-        sigma_pooled = sigma_pooled,
-        age          = age
+        interaction   = include_sex_interaction_M2,
+        sigma_pooled  = sigma_pooled,
+        age           = age,
+        outcome       = outcome   # <-- pass outcome in
       )
     }
 
