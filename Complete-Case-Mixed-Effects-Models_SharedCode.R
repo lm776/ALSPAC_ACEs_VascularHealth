@@ -38,6 +38,10 @@
 #   - BP_systolic in model formulas: this is the *time-varying* systolic BP
 #                  variable created during pivoting to long format (takes
 #                  BP_systolic_17 at age 17 and BP_systolic_24 at age 24).
+#   - PA_include_15 / Diet_include_13: logical inclusion flags applied only to
+#               M3 and M5 (which include physical activity and diet mediators). These
+#              flags encode additional validity criteria for PA/diet data beyond simple
+#              non-missingness, so M3/M5 samples are smaller than M1/M2/M4.
 #
 # Author:  Laura Macro
 # Date:    June 2026
@@ -122,11 +126,24 @@ make_classic_long_cc <- function(dat) {
 # Section 3: Subset long data by outcome ----
 
 get_outcome_subset_cc <- function(long_dat,
-                                  outcome = c("PWV", "cIMT")) {
+                                  outcome = c("PWV", "cIMT"),
+                                  model_id = c("M1", "M2", "M3", "M4", "M5")) {
   outcome <- match.arg(outcome)
-  long_dat %>%
+  model_id <- match.arg(model_id)
+  
+  df <- long_dat %>%
     dplyr::filter(Measure == outcome) %>%
     dplyr::mutate(Y = Value)
+  
+  # M3 and M5 include physical activity and diet mediators, so restrict to
+  # participants meeting the PA/diet complete-case inclusion criteria used
+  # in the CC regression script (Complete-Case-Regression-Analyses_SharedCode.R)
+  if (model_id %in% c("M3", "M5")) {
+    df <- df %>%
+      dplyr::filter(PA_include_15 == TRUE, Diet_include_13 == TRUE)
+  }
+  
+  df
 }
 
 
@@ -266,6 +283,8 @@ write_one_doc_per_model_cc <- function(dat_cc,
                                                     "M4", "M5"),
                                        doc_dir  = "word_results_CC",
                                        id       = "cidB4619") {
+  
+  stopifnot(all(c("PA_include_15", "Diet_include_13") %in% names(dat_cc)))
 
   model_id <- match.arg(model_id)
   dir.create(doc_dir, showWarnings = FALSE, recursive = TRUE)
@@ -284,7 +303,7 @@ write_one_doc_per_model_cc <- function(dat_cc,
     doc   <- doc %>% officer::body_add_par(outcome, style = "heading 1")
     forms <- pick_forms(outcome)
     fixed <- forms[[model_id]]
-    df    <- get_outcome_subset_cc(long, outcome = outcome)
+    df <- get_outcome_subset_cc(long, outcome = outcome, model_id = model_id)
 
     message("Fitting (CC whole): ", outcome, " ", model_id)
 
