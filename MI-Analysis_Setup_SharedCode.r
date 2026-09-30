@@ -1095,9 +1095,6 @@ transform_completed_datasets <- function(completed_list,
   exposure_type <- match.arg(exposure_type)
   lapply(completed_list, function(df) {
 
-    # Birth weight: grams → kg
-    df <- df %>% mutate(Birth_weight_kg = Birth_weight_kg / 1000)
-
     # Back-transform log variables
     df <- df %>%
       mutate(
