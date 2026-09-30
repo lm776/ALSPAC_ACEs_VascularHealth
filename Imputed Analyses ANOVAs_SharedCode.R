@@ -83,8 +83,7 @@ get_pooled_sigma <- function(mira) {
 # Computes emmeans and pairwise contrasts across imputations using Rubin's rules.
 # Returns pooled emmeans and pooled contrasts (including Cohen's d).
 compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
-                                        sigma_pooled,
-                                        age) {
+                                        sigma_pooled, age, outcome) {
   bmi    <- bmi_var(age)
   bp     <- bp_var(age)
   agec   <- age_var(age)
@@ -137,9 +136,11 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
 
   # Pool EMMs over imputations (Rubin's rules)
   emm_all <- dplyr::bind_rows(lapply(emm_list, `[[`, "emmeans"), .id = "imp")
-
+  
+  emm_grp <- intersect(c("Classic_ACEs_cat", "Child_sex"), names(emm_all))
+  
   emm_pooled <- emm_all |>
-    dplyr::group_by(Classic_ACEs_cat, Child_sex) |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(emm_grp))) |>
     dplyr::summarise(
       m   = dplyr::n(),
       est = mean(estimate),
@@ -156,12 +157,14 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
       CI_low  = est - qt(0.975, df) * SE,
       CI_high = est + qt(0.975, df) * SE
     )
-
+  
   # Pool contrasts over imputations (Rubin's rules)
   contr_all <- dplyr::bind_rows(lapply(emm_list, `[[`, "contrasts"), .id = "imp")
-
+  
+  con_grp <- intersect(c("contrast", "Child_sex"), names(contr_all))
+  
   contrast_pooled <- contr_all |>
-    dplyr::group_by(contrast) |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(con_grp))) |>
     dplyr::summarise(
       m   = dplyr::n(),
       est = mean(estimate),
@@ -179,13 +182,12 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
       CI_high  = est + qt(0.975, df) * SE,
       Cohens_d = est / sigma_pooled
     )
-
+  
   list(
     emmeans   = emm_pooled,
     contrasts = contrast_pooled
   )
 }
-
 
 # Section 4: Formula builder ----
 
@@ -256,10 +258,16 @@ fit_mi <- function(mids_obj, fml, subset_expr = NULL) {
 }
 
 d1_test_ace_fast <- function(mira_full, fml_full, mids_obj, subset_expr = NULL) {
-  fml_red  <- update(fml_full, . ~ . - Classic_ACEs_cat)
+  has_int <- "Classic_ACEs_cat:Child_sex" %in% attr(terms(fml_full), "term.labels")
+  fml_red <- if (has_int) {
+    update(fml_full, . ~ . - Classic_ACEs_cat - Classic_ACEs_cat:Child_sex)
+  } else {
+    update(fml_full, . ~ . - Classic_ACEs_cat)
+  }
   mira_red <- fit_mi(mids_obj, fml_red, subset_expr)
   mice::D1(mira_full, mira_red)
 }
+
 
 d1_test_interaction_fast <- function(mira_full, fml_full, mids_obj) {
   fml_red  <- update(fml_full, . ~ . - Classic_ACEs_cat:Child_sex)
@@ -380,7 +388,7 @@ Results_D1_Imputed_17_PWV <- run_mi_d1_suite_clean(
   mids_obj   = Study1_Imp_Classic_Final_Transformed_V2,
   outcomes   = "PWV",
   ages       = 17,
-  models     = c("M1", "M2"),
+  models     = c("M2"),
   groups     = c("Whole", "Female", "Male"),
   include_sex_interaction_M2 = include_sex_interaction_M2
 )
