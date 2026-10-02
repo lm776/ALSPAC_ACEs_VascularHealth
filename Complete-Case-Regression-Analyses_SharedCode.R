@@ -37,8 +37,6 @@
 #     as a `subset =` restriction on the Model 3 and Model 5 lm() calls
 #     (which include PA/diet as lifestyle mediators). Models 1, 2, and 4
 #     use the full available sample.
-#
-# Author:  Laura Macro
 # Date:    June 2026
 
 

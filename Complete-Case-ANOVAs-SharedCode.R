@@ -35,8 +35,7 @@
 #   Input data objects:
 #     cov_complete_classic_17  — complete-case dataset at age 17
 #     cov_complete_classic_24  — complete-case dataset at age 24
-#
-# Author:  Laura Macro
+
 # Date:    2026
 
 

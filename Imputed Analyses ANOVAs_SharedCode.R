@@ -31,8 +31,6 @@
 #   D1 tests:
 #     - Overall ACE group effect: compare full vs reduced model (drop Classic_ACEs_cat)
 #     - (Optional) Interaction in whole-sample Model 2: Classic_ACEs_cat * Child_sex
-#
-# Author:  Laura Macro
 # Date:    2026
 
 

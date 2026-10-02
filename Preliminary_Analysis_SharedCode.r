@@ -12,8 +12,6 @@
 #          This code is shared for transparency and reproducibility only.
 #          The underlying data cannot be shared and are not included.
 #          Data access: https://www.bristol.ac.uk/alspac/researchers/access/
-#
-# Author:  Laura Macro
 # Date:    2026
 
 

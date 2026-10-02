@@ -43,7 +43,6 @@
 #              flags encode additional validity criteria for PA/diet data beyond simple
 #              non-missingness, so M3/M5 samples are smaller than M1/M2/M4.
 #
-# Author:  Laura Macro
 # Date:    June 2026
 
 

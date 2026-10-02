@@ -48,8 +48,6 @@
 #        The mids object used to extract imputation 1 differs:
 #        Classic  → Study1_Imp_Classic_Trns_Reduced
 #        Extended → Study1_Imp_Ext_Trns_Reduced
-#
-# Author:  Laura Macro
 # Date:    2026
 
 

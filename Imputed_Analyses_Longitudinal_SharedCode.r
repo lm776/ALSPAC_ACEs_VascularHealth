@@ -39,8 +39,6 @@
 #        Classic  → pick_forms()
 #        Cat      → pick_forms_cat()
 #        Extended → pick_forms_ext()
-#
-# Author:  Laura Macro
 # Date:    2026
 
 
