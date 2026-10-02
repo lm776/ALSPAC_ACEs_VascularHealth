@@ -87,7 +87,7 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
   bmi    <- bmi_var(age)
   bp     <- bp_var(age)
   agec   <- age_var(age)
-
+  
   nuisance_base <- c(
     "Marital_status", "Parent_edu",
     "Mat_PND_gest", "Mat_age_delivery", "Birth_weight_kg",
@@ -99,7 +99,7 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
     nuisance_wave <- c(bmi, agec)
   }  
   nuisance_vars <- c(nuisance_base, nuisance_wave)
-
+  
   emm_list <- lapply(mira$analyses, function(fit) {
     emm <- suppressMessages(
       if (interaction) {
@@ -107,6 +107,8 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
           fit,
           ~ Classic_ACEs_cat | Child_sex,
           nuisance = nuisance_vars,
+          wt.nuis  = "proportional",
+          weights  = "proportional",
           rg.limit = 50000
         )
       } else {
@@ -114,26 +116,28 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
           fit,
           ~ Classic_ACEs_cat,
           nuisance = nuisance_vars,
+          wt.nuis  = "proportional",
+          weights  = "proportional",
           rg.limit = 50000
         )
       }
     )
-
+    
     emm_df <- as.data.frame(emm) |>
       dplyr::rename(
         estimate = emmean,
         CI_low   = lower.CL,
         CI_high  = upper.CL
       )
-
-    contr_df <- as.data.frame(contrast(emm, method = "pairwise", adjust = "none"))
-
+    
+    contr_df <- as.data.frame(contrast(emm, method = "revpairwise", adjust = "none"))
+    
     list(
       emmeans   = emm_df,
       contrasts = contr_df
     )
   })
-
+  
   # Pool EMMs over imputations (Rubin's rules)
   emm_all <- dplyr::bind_rows(lapply(emm_list, `[[`, "emmeans"), .id = "imp")
   
@@ -152,7 +156,7 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
       T_var   = W + (1 + 1/m) * B,
       SE      = sqrt(T_var),
       t       = est / SE,
-      df      = dplyr::if_else(B == 0, 9999, (m - 1) * (1 + 1/m * W / B)^2),
+      df = dplyr::if_else(B == 0, 9999, (m - 1) * (1 + W / ((1 + 1/m) * B))^2),
       p_value = 2 * pt(-abs(t), df = df),
       CI_low  = est - qt(0.975, df) * SE,
       CI_high = est + qt(0.975, df) * SE
@@ -176,7 +180,7 @@ compute_mi_pairwise_emmeans <- function(mira, interaction = FALSE,
       T_var    = W + (1 + 1/m) * B,
       SE       = sqrt(T_var),
       t        = est / SE,
-      df       = dplyr::if_else(B == 0, 9999, (m - 1) * (1 + 1/m * W / B)^2),
+      df = dplyr::if_else(B == 0, 9999, (m - 1) * (1 + W / ((1 + 1/m) * B))^2),
       p_value  = 2 * pt(-abs(t), df = df),
       CI_low   = est - qt(0.975, df) * SE,
       CI_high  = est + qt(0.975, df) * SE,
@@ -195,34 +199,34 @@ build_fml <- function(outcome, age,
                       model = c("M1", "M2"),
                       group = c("Whole", "Female", "Male"),
                       include_sex_interaction_M2 = TRUE) {
-
+  
   model <- match.arg(model)
   group <- match.arg(group)
-
+  
   y    <- y_var(outcome, age)
   agec <- age_var(age)
   bp   <- bp_var(age)
   bmi  <- bmi_var(age)
-
+  
   ace <- "Classic_ACEs_cat"
-
+  
   # Model 1 RHS
   rhs_m1 <- if (outcome %in% c("PWV", "Arterial_Dist")) {
     paste(c(ace, agec, bp), collapse = " + ")
   } else { # cIMT
     paste(c(ace, agec), collapse = " + ")
   }
-
+  
   if (model == "M1") {
     return(as.formula(paste0(y, " ~ ", rhs_m1)))
   }
-
+  
   # Model 2 RHS
   rhs_m2 <- c(m2_covars_base, bmi, agec)
-
+  
   # PWV/Arterial_Dist include BP; cIMT does not
   if (outcome %in% c("PWV", "Arterial_Dist")) rhs_m2 <- c(rhs_m2, bp)
-
+  
   # Whole group: optionally include ACE x sex interaction in Model 2
   if (group == "Whole") {
     if (include_sex_interaction_M2) {
@@ -234,7 +238,7 @@ build_fml <- function(outcome, age,
     # Sex-stratified: do NOT include Child_sex or interaction
     rhs <- paste(c(ace, rhs_m2), collapse = " + ")
   }
-
+  
   as.formula(paste0(y, " ~ ", rhs))
 }
 
@@ -284,43 +288,43 @@ run_mi_d1_suite_clean <- function(mids_obj,
                                   models   = c("M1", "M2"),
                                   groups   = c("Whole", "Female", "Male"),
                                   include_sex_interaction_M2 = FALSE) {
-
+  
   plan <- tidyr::expand_grid(
     outcome = outcomes,
     age     = ages,
     model   = models,
     group   = groups
   )
-
+  
   res <- lapply(seq_len(nrow(plan)), function(i) {
-
+    
     outcome <- plan$outcome[i]
     age     <- plan$age[i]
     model   <- plan$model[i]
     group   <- plan$group[i]
-
+    
     subset_expr <- switch(group,
                           Whole  = NULL,
                           Female = quote(Child_sex == "Female"),
                           Male   = quote(Child_sex == "Male"))
-
+    
     fml <- build_fml(outcome, age, model, group, include_sex_interaction_M2)
-
+    
     message("Fitting: ", outcome, "_", age, " ", model, " ", group)
-
+    
     mira   <- fit_mi(mids_obj, fml, subset_expr)
     pooled <- summary(mice::pool(mira), conf.int = TRUE)
-
+    
     d1_ace <- d1_test_ace_fast(mira, fml, mids_obj, subset_expr)
     d1_eta <- d1_to_eta2(d1_ace)
-
+    
     d1_int <- NULL
     if (group == "Whole" && model == "M2" && include_sex_interaction_M2) {
       d1_int <- d1_test_interaction_fast(mira, fml, mids_obj)
     }
-
+    
     sigma_pooled <- get_pooled_sigma(mira)
-
+    
     emm_results <- NULL
     if (model == "M2" && group == "Whole") {
       emm_results <- compute_mi_pairwise_emmeans(
@@ -331,7 +335,7 @@ run_mi_d1_suite_clean <- function(mids_obj,
         outcome       = outcome   # <-- pass outcome in
       )
     }
-
+    
     list(
       spec      = data.frame(outcome = outcome, age = age, model = model, group = group,
                              formula = deparse(fml), stringsAsFactors = FALSE),
@@ -343,7 +347,7 @@ run_mi_d1_suite_clean <- function(mids_obj,
       contrasts = emm_results$contrasts
     )
   })
-
+  
   names(res) <- with(plan, paste(outcome, age, model, group, sep = "_"))
   res
 }
@@ -355,10 +359,10 @@ print_anova_results <- function(results_list, ace_only = FALSE) {
   for (nm in names(results_list)) {
     res <- results_list[[nm]]
     cat("\n\n====", nm, "====\n")
-
+    
     if (!is.null(res$spec))   { cat("\n-- Specification --\n");    print(res$spec) }
     if (!is.null(res$pooled)) { cat("\n-- Pooled regression --\n"); print(as.data.frame(res$pooled)) }
-
+    
     if (!is.null(res$D1_ACE)) {
       cat("\n-- D1 test: ACE effect --\n")
       print(as.data.frame(res$D1_ACE$result))
@@ -381,83 +385,46 @@ print_anova_results <- function(results_list, ace_only = FALSE) {
 
 # Section 8: Run models ----
 
-# Set TRUE to include Classic_ACEs_cat * Child_sex interaction in whole-sample Model 2
-include_sex_interaction_M2 <- TRUE
+mids_path <- "___"  # <- edit to your file
 
-Results_D1_Imputed_17_PWV <- run_mi_d1_suite_clean(
-  mids_obj   = Study1_Imp_Classic_Final_Transformed_V2,
-  outcomes   = "PWV",
-  ages       = 17,
-  models     = c("M2"),
-  groups     = c("Whole", "Female", "Male"),
-  include_sex_interaction_M2 = include_sex_interaction_M2
+# Load once
+mids_obj <- readRDS(mids_path)
+
+run_and_write <- function(mids_obj, outcome, age, label,
+                          include_sex_interaction_M2 = TRUE) {
+  
+  res <- run_mi_d1_suite_clean(
+    mids_obj   = mids_obj,
+    outcomes   = outcome,
+    ages       = age,
+    models     = "M2",
+    groups     = c("Whole", "Female", "Male"),
+    include_sex_interaction_M2 = include_sex_interaction_M2
+  )
+  
+  stem <- paste0("Results_D1_Imputed_", age, "_", label)
+  saveRDS(res, file = paste0(stem, ".rds"))
+  write_anova_docx(res,
+                   out_file = paste0("ANCOVA_M2_", age, "_", label, ".docx"),
+                   title    = paste0("ANCOVA M2: ", outcome, " at ", age, " years"))
+  
+  rm(res)
+  gc()
+  invisible(NULL)
+}
+
+runs <- list(
+  list(outcome = "PWV",           age = 17, label = "PWV"),
+  list(outcome = "Arterial_Dist", age = 17, label = "Dist"),
+  list(outcome = "cIMT",          age = 17, label = "cIMT"),
+  list(outcome = "PWV",           age = 24, label = "PWV"),
+  list(outcome = "cIMT",          age = 24, label = "cIMT")
 )
-saveRDS(Results_D1_Imputed_17_PWV, file = "Results_D1_Imputed_17_PWV.rds")
-rm(Results_D1_Imputed_17_PWV)
 
-Results_D1_Imputed_17_Dist <- run_mi_d1_suite_clean(
-  mids_obj   = Study1_Imp_Classic_Final_Transformed_V2,
-  outcomes   = "Arterial_Dist",
-  ages       = 17,
-  models     = c("M1", "M2"),
-  groups     = c("Whole", "Female", "Male"),
-  include_sex_interaction_M2 = include_sex_interaction_M2
-)
-saveRDS(Results_D1_Imputed_17_Dist, file = "Results_D1_Imputed_17_Dist.rds")
-rm(Results_D1_Imputed_17_Dist)
+for (r in runs) {
+  message("=== ", r$outcome, " at ", r$age, " ===")
+  run_and_write(mids_obj, r$outcome, r$age, r$label)
+}
 
-Results_D1_Imputed_17_cIMT <- run_mi_d1_suite_clean(
-  mids_obj   = Study1_Imp_Classic_Final_Transformed_V2,
-  outcomes   = "cIMT",
-  ages       = 17,
-  models     = c("M1", "M2"),
-  groups     = c("Whole", "Female", "Male"),
-  include_sex_interaction_M2 = include_sex_interaction_M2
-)
-saveRDS(Results_D1_Imputed_17_cIMT, file = "Results_D1_Imputed_17_cIMT.rds")
-rm(Results_D1_Imputed_17_cIMT)
-
-Results_D1_Imputed_24_PWV <- run_mi_d1_suite_clean(
-  mids_obj   = Study1_Imp_Classic_Final_Transformed_V2,
-  outcomes   = "PWV",
-  ages       = 24,
-  models     = c("M1", "M2"),
-  groups     = c("Whole", "Female", "Male"),
-  include_sex_interaction_M2 = include_sex_interaction_M2
-)
-saveRDS(Results_D1_Imputed_24_PWV, file = "Results_D1_Imputed_24_PWV.rds")
-rm(Results_D1_Imputed_24_PWV)
-
-Results_D1_Imputed_24_cIMT <- run_mi_d1_suite_clean(
-  mids_obj   = Study1_Imp_Classic_Final_Transformed_V2,
-  outcomes   = "cIMT",
-  ages       = 24,
-  models     = c("M1", "M2"),
-  groups     = c("Whole", "Female", "Male"),
-  include_sex_interaction_M2 = include_sex_interaction_M2
-)
-saveRDS(Results_D1_Imputed_24_cIMT, file = "Results_D1_Imputed_24_cIMT.rds")
-rm(Results_D1_Imputed_24_cIMT)
-
-
-# Section 9: Print results ----
-
-Results_D1_Imputed_17_PWV  <- readRDS("Results_D1_Imputed_17_PWV.rds")
-print_anova_results(Results_D1_Imputed_17_PWV)
-rm(Results_D1_Imputed_17_PWV)
-
-Results_D1_Imputed_17_Dist <- readRDS("Results_D1_Imputed_17_Dist.rds")
-print_anova_results(Results_D1_Imputed_17_Dist)
-rm(Results_D1_Imputed_17_Dist)
-
-Results_D1_Imputed_17_cIMT <- readRDS("Results_D1_Imputed_17_cIMT.rds")
-print_anova_results(Results_D1_Imputed_17_cIMT)
-rm(Results_D1_Imputed_17_cIMT)
-
-Results_D1_Imputed_24_PWV  <- readRDS("Results_D1_Imputed_24_PWV.rds")
-print_anova_results(Results_D1_Imputed_24_PWV)
-rm(Results_D1_Imputed_24_PWV)
-
-Results_D1_Imputed_24_cIMT <- readRDS("Results_D1_Imputed_24_cIMT.rds")
-print_anova_results(Results_D1_Imputed_24_cIMT)
-rm(Results_D1_Imputed_24_cIMT)
+rm(mids_obj)
+gc()
